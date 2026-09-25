@@ -1,0 +1,82 @@
+{
+  "title": "Inference Server Load Test Report",
+  "tool": "Locust",
+  "endpoint": "POST /v2/models/{model}/infer",
+  "request": {
+    "model": "titanic",
+    "batch_size": 1,
+    "datatype": "FP32",
+    "input_shape": [
+      1,
+      6
+    ]
+  },
+  "scenarios": [
+    {
+      "concurrent_users": 1,
+      "request_count": 12744,
+      "failure_count": 0,
+      "requests_per_second": 489.8553203722028,
+      "latency_ms": {
+        "average": 2.0074339505220786,
+        "p50": 2,
+        "p95": 3,
+        "p99": 3,
+        "max": 62.43937499675667
+      }
+    },
+    {
+      "concurrent_users": 5,
+      "request_count": 28280,
+      "failure_count": 0,
+      "requests_per_second": 974.7093269964926,
+      "latency_ms": {
+        "average": 5.036396403922335,
+        "p50": 5,
+        "p95": 7,
+        "p99": 10,
+        "max": 61.366000001726206
+      }
+    },
+    {
+      "concurrent_users": 20,
+      "request_count": 31908,
+      "failure_count": 0,
+      "requests_per_second": 1099.5727708436282,
+      "latency_ms": {
+        "average": 17.64700089894553,
+        "p50": 17,
+        "p95": 25,
+        "p99": 42,
+        "max": 71.25941599952057
+      }
+    },
+    {
+      "concurrent_users": 50,
+      "request_count": 32026,
+      "failure_count": 0,
+      "requests_per_second": 1103.3108423040987,
+      "latency_ms": {
+        "average": 43.75052621426862,
+        "p50": 42,
+        "p95": 61,
+        "p99": 85,
+        "max": 124.78066599942395
+      }
+    }
+  ],
+  "summary": {
+    "total_requests": 104958,
+    "total_failures": 0,
+    "observed_peak_requests_per_second": 1103.3108423040987,
+    "saturation_observation": "Throughput increases strongly from 1 to 20 concurrent users, then remains almost flat between 20 and 50 users while latency increases substantially.",
+    "reliability_observation": "No request failures or Locust exceptions were recorded in any scenario.",
+    "conclusion": "The server remains stable throughout the tested load range. Around 20 concurrent users the workload is already close to the observed throughput ceiling of approximately 1.1k requests/s; increasing concurrency to 50 users does not materially improve throughput and mainly increases response latency."
+  },
+  "source_files": [
+    "load_tests/results/users_1_stats.csv",
+    "load_tests/results/users_5_stats.csv",
+    "load_tests/results/users_20_stats.csv",
+    "load_tests/results/users_50_stats.csv"
+  ]
+}

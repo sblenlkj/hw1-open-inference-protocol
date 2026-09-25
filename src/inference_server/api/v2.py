@@ -11,7 +11,7 @@ from inference_server.api.schemas import (
 )
 from inference_server.application.mappers.inference import (
     numpy_outputs_to_response,
-    request_to_numpy,
+    inputs_to_numpy,
 )
 from inference_server.application.mappers.metadata import map_runtime_tensor
 
@@ -69,8 +69,8 @@ def infer(
         raise HTTPException(status_code=404, detail="Model not found")
 
     try:
-        feeds = request_to_numpy(
-            payload,
+        feeds = inputs_to_numpy(
+            payload.inputs,
             expected_inputs=list(runtime.session.get_inputs()),
         )
         output_names, outputs = runtime.infer(feeds)

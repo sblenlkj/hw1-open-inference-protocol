@@ -11,5 +11,8 @@ class Settings:
     model_platform: str = "onnx_onnxv1"
     model_path: str = "models/titanic.onnx"
 
+    grpc_host: str = "0.0.0.0"
+    grpc_port: int = 8081
+
 
 settings = Settings()

@@ -1,11 +1,13 @@
+from collections.abc import Sequence
+
 import numpy as np
 from numpy.typing import NDArray
 
 from inference_server.api.schemas import (
-    InferenceRequest,
     InferenceResponse,
     InferenceTensorResponse,
 )
+from inference_server.application.ports.inference import InferenceInputPort
 from inference_server.application.ports.runtime import RuntimeTensorPort
 
 
@@ -38,8 +40,8 @@ NUMPY_TO_OPEN_INFERENCE: dict[np.dtype, str] = {
 
 
 def _validate_shape(
-    request_shape: list[int],
-    runtime_shape: list[int | str | None],
+    request_shape: Sequence[int],
+    runtime_shape: Sequence[int | str | None],
 ) -> None:
     if len(request_shape) != len(runtime_shape):
         raise ValueError(
@@ -49,18 +51,23 @@ def _validate_shape(
     for index, (actual, expected) in enumerate(
         zip(request_shape, runtime_shape, strict=True)
     ):
+        if actual < 0:
+            raise ValueError(
+                f"Dimension {index} must be non-negative, got {actual}"
+            )
+
         if isinstance(expected, int) and actual != expected:
             raise ValueError(
                 f"Dimension {index} must be {expected}, got {actual}"
             )
 
 
-def request_to_numpy(
-    request: InferenceRequest,
-    expected_inputs: list[RuntimeTensorPort],
+def inputs_to_numpy(
+    inputs: Sequence[InferenceInputPort],
+    expected_inputs: Sequence[RuntimeTensorPort],
 ) -> dict[str, NDArray[np.generic]]:
     expected_by_name = {item.name: item for item in expected_inputs}
-    input_names = [item.name for item in request.inputs]
+    input_names = [item.name for item in inputs]
     actual_names = set(input_names)
     expected_names = set(expected_by_name)
 
@@ -74,7 +81,7 @@ def request_to_numpy(
 
     feeds: dict[str, NDArray[np.generic]] = {}
 
-    for tensor in request.inputs:
+    for tensor in inputs:
         expected = expected_by_name[tensor.name]
 
         expected_datatype = RUNTIME_TO_OPEN_INFERENCE.get(expected.type)
@@ -87,7 +94,7 @@ def request_to_numpy(
                 f"{expected_datatype}, got {tensor.datatype}"
             )
 
-        _validate_shape(tensor.shape, list(expected.shape))
+        _validate_shape(tensor.shape, expected.shape)
 
         dtype = OPEN_INFERENCE_TO_NUMPY.get(tensor.datatype)
         if dtype is None:
@@ -99,7 +106,7 @@ def request_to_numpy(
         if array.size != expected_size:
             raise ValueError(
                 f"Tensor {tensor.name!r} has {array.size} values, "
-                f"but shape {tensor.shape} requires {expected_size}"
+                f"but shape {list(tensor.shape)} requires {expected_size}"
             )
 
         feeds[tensor.name] = array.reshape(tensor.shape)

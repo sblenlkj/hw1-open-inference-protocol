@@ -3,6 +3,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 
+from inference_server.api.grpc.server import create_grpc_server
 from inference_server.api.v2 import router as v2_router
 from inference_server.application.runtime.model_runtime import ModelRuntime
 from inference_server.core.settings import settings
@@ -18,9 +19,13 @@ async def lifespan(app: FastAPI):
     runtime.load()
     app.state.model_runtime = runtime
 
+    grpc_server = create_grpc_server(runtime, settings)
+    grpc_server.start()
+
     try:
         yield
     finally:
+        grpc_server.stop(grace=5).wait()
         runtime.unload()
 
 

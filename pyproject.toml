@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115",
+    "grpcio>=1.84",
     "onnx>=1.17",
     "onnxruntime>=1.22",
     "uvicorn>=0.34",
@@ -19,7 +20,9 @@ inference-server = "inference_server.main:run"
 
 [dependency-groups]
 dev = [
+    "grpcio-tools>=1.84",
     "httpx2",
+    "locust>=2.40",
     "pytest>=8.3",
 ]
 

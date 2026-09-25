@@ -1,0 +1,28 @@
+[project]
+name = "inference-server"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "blenlkj", email = "sblenlkj@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "onnx>=1.17",
+    "onnxruntime>=1.22",
+    "uvicorn>=0.34",
+]
+
+[project.scripts]
+inference-server = "inference_server.main:run"
+
+[dependency-groups]
+dev = [
+    "httpx2",
+    "pytest>=8.3",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.11,<0.13.0"]
+build-backend = "uv_build"

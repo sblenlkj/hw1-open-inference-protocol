@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Run tests
+        run: uv run pytest -v
+
+  container:
+    runs-on: ubuntu-latest
+    needs: test
+
+    permissions:
+      contents: read
+      packages: write
+
+    env:
+      IMAGE_NAME: ghcr.io/${{ github.repository }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Export production requirements
+        run: |
+          uv export \
+            --frozen \
+            --no-dev \
+            --no-emit-project \
+            -o requirements.txt
+
+      - name: Build image
+        run: docker build -t inference-server:test .
+
+      - name: Start container
+        run: |
+          docker run -d \
+            --name inference-server \
+            -p 8000:8000 \
+            inference-server:test
+
+      - name: Smoke test
+        run: |
+          for i in {1..20}; do
+            if curl --fail --silent --show-error \
+              http://localhost:8000/v2/health/ready; then
+              exit 0
+            fi
+            sleep 1
+          done
+
+          docker logs inference-server
+          exit 1
+
+      - name: Stop container
+        if: always()
+        run: |
+          docker rm -f inference-server || true
+
+      - name: Log in to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          docker tag inference-server:test "${IMAGE_NAME}:latest"
+          docker tag inference-server:test "${IMAGE_NAME}:${GITHUB_SHA}"
+
+      - name: Push image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          docker push "${IMAGE_NAME}:latest"
+          docker push "${IMAGE_NAME}:${GITHUB_SHA}"
